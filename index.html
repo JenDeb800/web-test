@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Assistant</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f5f0;
+    --panel: #ffffff;
+    --accent: #2d6a4f;
+    --accent-light: #e8f4ee;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e1d8;
+    --source-bg: #fafaf7;
+    --bubble-user: #2d6a4f;
+    --bubble-bot: #ffffff;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    width: 36px;
+    height: 36px;
+    background: var(--accent);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .logo svg { width: 20px; height: 20px; fill: white; }
+
+  .header-text h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .header-text p {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 300;
+    margin-top: 1px;
+  }
+
+  .status-dot {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #d1d5db;
+  }
+
+  .dot.ready { background: #22c55e; }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    gap: 0;
+  }
+
+  /* ── CHAT PANEL ── */
+  .chat-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 28px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    scroll-behavior: smooth;
+  }
+
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Welcome state */
+  .welcome {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px;
+    gap: 12px;
+    opacity: 1;
+    transition: opacity 0.3s;
+  }
+
+  .welcome.hidden { display: none; }
+
+  .welcome h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .welcome p {
+    font-size: 14px;
+    color: var(--muted);
+    max-width: 380px;
+    line-height: 1.6;
+  }
+
+  .suggested {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .suggested button {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .suggested button:hover {
+    background: var(--accent-light);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: fadeUp 0.25s ease;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user { align-items: flex-end; }
+  .message.bot  { align-items: flex-start; }
+
+  .bubble {
+    max-width: 72%;
+    padding: 13px 17px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.65;
+    box-shadow: var(--shadow);
+  }
+
+  .message.user .bubble {
+    background: var(--bubble-user);
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+
+  .message.bot .bubble {
+    background: var(--bubble-bot);
+    color: var(--text);
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .message-label {
+    font-size: 11px;
+    color: var(--muted);
+    padding: 0 4px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  /* Typing indicator */
+  .typing .bubble {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    padding: 16px 20px;
+  }
+
+  .typing-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    animation: bounce 1.2s infinite;
+  }
+
+  .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.30s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+  }
+
+  /* Source tag on bot messages */
+  .source-tag {
+    font-size: 11px;
+    color: var(--accent);
+    cursor: pointer;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .source-tag:hover { text-decoration: underline; }
+
+  /* ── INPUT AREA ── */
+  .input-area {
+    padding: 16px 28px 24px;
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .input-row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow);
+    transition: border-color 0.15s;
+  }
+
+  .input-row:focus-within { border-color: var(--accent); }
+
+  textarea {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    background: transparent;
+    resize: none;
+    max-height: 120px;
+    line-height: 1.5;
+    padding: 2px 0;
+  }
+
+  textarea::placeholder { color: #adb5bd; }
+
+  .send-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: var(--accent);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .send-btn:hover { opacity: 0.88; }
+  .send-btn:active { transform: scale(0.95); }
+  .send-btn:disabled { opacity: 0.35; cursor: default; }
+  .send-btn svg { width: 16px; height: 16px; fill: white; }
+
+  .disclaimer {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  /* ── SOURCE PANEL ── */
+  .source-panel {
+    width: 320px;
+    background: var(--source-bg);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+    transition: width 0.3s ease;
+  }
+
+  .source-panel.empty { width: 0; border: none; }
+
+  .source-header {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .source-header h3 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+  }
+
+  .source-header p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .source-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .source-list::-webkit-scrollbar { width: 3px; }
+  .source-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .source-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    animation: fadeUp 0.2s ease;
+  }
+
+  .source-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  .page-badge {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .relevance-bar {
+    height: 3px;
+    border-radius: 2px;
+    background: var(--border);
+    flex: 1;
+    margin-left: 10px;
+    overflow: hidden;
+  }
+
+  .relevance-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .source-text {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 5;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .source-text.expanded {
+    -webkit-line-clamp: unset;
+    display: block;
+  }
+
+  .expand-btn {
+    font-size: 11px;
+    color: var(--accent);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 0 0;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .expand-btn:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+  </div>
+  <div class="header-text">
+    <h1>Research Assistant</h1>
+    <p>Debenham Thesis · Drug Use & Adolescent Health</p>
+  </div>
+  <div class="status-dot">
+    <div class="dot" id="statusDot"></div>
+    <span id="statusText">Connecting...</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- CHAT -->
+  <div class="chat-panel">
+    <div class="messages" id="messages">
+
+      <div class="welcome" id="welcome">
+        <h2>Ask me anything about the research</h2>
+        <p>I'll find the most relevant parts of the document and answer in plain language.</p>
+        <div class="suggested">
+          <button onclick="sendSuggested(this)">What is The Illicit Project and what does it aim to do?</button>
+          <button onclick="sendSuggested(this)">What did the study find about adolescent drug use?</button>
+          <button onclick="sendSuggested(this)">How was the intervention delivered in schools?</button>
+          <button onclick="sendSuggested(this)">What are the main limitations of this research?</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <textarea id="input" placeholder="Ask a question about the research..." rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+      <p class="disclaimer">Answers are based only on the uploaded research document.</p>
+    </div>
+  </div>
+
+  <!-- SOURCE PANEL -->
+  <div class="source-panel empty" id="sourcePanel">
+    <div class="source-header">
+      <h3>Document Sources</h3>
+      <p>Excerpts used to generate this answer</p>
+    </div>
+    <div class="source-list" id="sourceList"></div>
+  </div>
+
+</div>
+
+<script>
+  const API = "http://localhost:5000";
+  let isLoading = false;
+
+  // ── STATUS CHECK ────────────────────────────────────────────────────────────
+  async function checkStatus() {
+    try {
+      const res = await fetch(`${API}/health`);
+      const data = await res.json();
+      if (data.status === "ready") {
+        document.getElementById("statusDot").classList.add("ready");
+        document.getElementById("statusText").textContent = `Ready · ${data.chunks} chunks`;
+      }
+    } catch {
+      document.getElementById("statusText").textContent = "Offline — run app.py";
+      setTimeout(checkStatus, 3000);
+    }
+  }
+
+  checkStatus();
+
+  // ── INPUT HANDLING ──────────────────────────────────────────────────────────
+  function autoResize(el) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  }
+
+  function handleKey(e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function sendSuggested(btn) {
+    document.getElementById("input").value = btn.textContent;
+    sendMessage();
+  }
+
+  // ── SEND MESSAGE ────────────────────────────────────────────────────────────
+  async function sendMessage() {
+    const input = document.getElementById("input");
+    const query = input.value.trim();
+    if (!query || isLoading) return;
+
+    // Hide welcome
+    const welcome = document.getElementById("welcome");
+    if (welcome) welcome.classList.add("hidden");
+
+    // Add user bubble
+    appendMessage("user", query);
+    input.value = "";
+    input.style.height = "auto";
+
+    // Typing indicator
+    const typingId = appendTyping();
+    isLoading = true;
+    document.getElementById("sendBtn").disabled = true;
+
+    try {
+      const res = await fetch(`${API}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: query }),
+      });
+
+      const data = await res.json();
+      removeTyping(typingId);
+
+      if (data.error) {
+        appendMessage("bot", `Sorry, something went wrong: ${data.error}`);
+      } else {
+        appendMessage("bot", data.answer, data.sources);
+        showSources(data.sources);
+      }
+    } catch (err) {
+      removeTyping(typingId);
+      appendMessage("bot", "Couldn't reach the server. Make sure app.py is running.");
+    }
+
+    isLoading = false;
+    document.getElementById("sendBtn").disabled = false;
+    scrollToBottom();
+  }
+
+  // ── MESSAGE RENDERING ───────────────────────────────────────────────────────
+  function appendMessage(role, text, sources) {
+    const container = document.getElementById("messages");
+
+    const msg = document.createElement("div");
+    msg.className = `message ${role}`;
+
+    const label = document.createElement("div");
+    label.className = "message-label";
+    label.textContent = role === "user" ? "You" : "Assistant";
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+
+    msg.appendChild(label);
+    msg.appendChild(bubble);
+
+    if (role === "bot" && sources && sources.length) {
+      const tag = document.createElement("div");
+      tag.className = "source-tag";
+      tag.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11z"/></svg> ${sources.length} sources`;
+      tag.onclick = () => document.getElementById("sourcePanel").scrollIntoView({ behavior: "smooth" });
+      msg.appendChild(tag);
+    }
+
+    container.appendChild(msg);
+    scrollToBottom();
+    return msg;
+  }
+
+  function appendTyping() {
+    const container = document.getElementById("messages");
+    const id = "typing-" + Date.now();
+
+    const msg = document.createElement("div");
+    msg.className = "message bot typing";
+    msg.id = id;
+
+    const label = document.createElement("div");
+    label.className = "message-label";
+    label.textContent = "Assistant";
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.innerHTML = `<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>`;
+
+    msg.appendChild(label);
+    msg.appendChild(bubble);
+    container.appendChild(msg);
+    scrollToBottom();
+    return id;
+  }
+
+  function removeTyping(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  // ── SOURCE PANEL ────────────────────────────────────────────────────────────
+  function showSources(sources) {
+    const panel = document.getElementById("sourcePanel");
+    const list = document.getElementById("sourceList");
+
+    panel.classList.remove("empty");
+    list.innerHTML = "";
+
+    sources.forEach((src, i) => {
+      const card = document.createElement("div");
+      card.className = "source-card";
+
+      const pct = Math.round(src.score * 100);
+
+      card.innerHTML = `
+        <div class="source-card-header">
+          <span class="page-badge">Page ${src.page}</span>
+          <div class="relevance-bar">
+            <div class="relevance-fill" style="width: ${pct}%"></div>
+          </div>
+        </div>
+        <div class="source-text" id="src-text-${i}">${src.text}</div>
+        <button class="expand-btn" onclick="toggleExpand(${i}, this)">Show more</button>
+      `;
+
+      list.appendChild(card);
+    });
+  }
+
+  function toggleExpand(i, btn) {
+    const el = document.getElementById(`src-text-${i}`);
+    el.classList.toggle("expanded");
+    btn.textContent = el.classList.contains("expanded") ? "Show less" : "Show more";
+  }
+
+  // ── UTILS ───────────────────────────────────────────────────────────────────
+  function scrollToBottom() {
+    const container = document.getElementById("messages");
+    container.scrollTop = container.scrollHeight;
+  }
+</script>
+
+</body>
+</html>
